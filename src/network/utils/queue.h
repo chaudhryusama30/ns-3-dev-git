@@ -39,7 +39,18 @@ namespace ns3 {
  * \ingroup queue
  * \brief Abstract base class for packet Queues
  * 
- * This class defines the base APIs for packet queues in the ns-3 system
+ * This class defines the base APIs for packet queues in the ns-3 system.
+ *
+ * Subclasses need to define:
+ * - an Enqueue method (and possibly others) to insert a packet in the queue
+ * - a Dequeue method (and possibly others) to extract a packet from the queue
+ * - a Peek method (and possibly others) to peek a packet in the queue
+ *
+ * The above methods must call the non-virtual Insert, Extract and Peep methods,
+ * respectively, provided by the base class. These methods calls the DoInsert,
+ * DoExtract and DoPeep methods, respectively, that must be defined by the
+ * subclass. Such methods allow to insert, extract or peek an item from a
+ * specified position in the queue.
  */
 class Queue : public Object
 {
@@ -62,17 +73,17 @@ public:
    * \param item item to enqueue
    * \return True if the operation was successful; false otherwise
    */
-  bool Enqueue (Ptr<QueueItem> item);
+  virtual bool Enqueue (Ptr<QueueItem> item) = 0;
   /**
    * Remove an item from the front of the Queue
    * \return 0 if the operation was not successful; the item otherwise.
    */
-  Ptr<QueueItem> Dequeue (void);
+  virtual Ptr<QueueItem> Dequeue (void) = 0;
   /**
    * Get a copy of the item at the front of the queue without removing it
    * \return 0 if the operation was not successful; the item otherwise.
    */
-  Ptr<const QueueItem> Peek (void) const;
+  virtual Ptr<const QueueItem> Peek (void) const = 0;
 
   /**
    * Flush the queue.
@@ -201,23 +212,40 @@ protected:
    */
   void Drop (Ptr<Packet> p);
 
-private:
   /**
-   * Push an item in the queue
-   * \param item the item to enqueue
+   * Insert an item in the queue (if there is available capacity) and update statistics
+   * \param item the item to insert
    * \return true if success, false if the packet has been dropped.
    */
-  virtual bool DoEnqueue (Ptr<QueueItem> item) = 0;
+  bool Insert (Ptr<QueueItem> item);
   /**
-   * Pull an item from the queue
+   * Extract an item from the queue (if the queue is not empty) and update statistics
    * \return the item.
    */
-  virtual Ptr<QueueItem> DoDequeue (void) = 0;
+  Ptr<QueueItem> Extract (void);
   /**
-   * Peek the front item in the queue
+   * Peep an item in the queue (if the queue is not empty)
    * \return the item.
    */
-  virtual Ptr<const QueueItem> DoPeek (void) const = 0;
+  Ptr<const QueueItem> Peep (void) const;
+
+private:
+  /**
+   * Actually insert an item in the queue
+   * \param item the item to insert
+   * \return true if success, false if the packet has been dropped.
+   */
+  virtual bool DoInsert (Ptr<QueueItem> item) = 0;
+  /**
+   * Actually extract an item from the queue
+   * \return the item.
+   */
+  virtual Ptr<QueueItem> DoExtract (void) = 0;
+  /**
+   * Actually peep an item in the queue
+   * \return the item.
+   */
+  virtual Ptr<const QueueItem> DoPeep (void) const = 0;
 
   /// Traced callback: fired when a packet is enqueued
   TracedCallback<Ptr<const Packet> > m_traceEnqueue;

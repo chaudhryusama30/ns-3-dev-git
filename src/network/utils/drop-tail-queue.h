@@ -46,10 +46,14 @@ public:
 
   virtual ~DropTailQueue();
 
+  virtual bool Enqueue (Ptr<QueueItem> item);
+  virtual Ptr<QueueItem> Dequeue (void);
+  virtual Ptr<const QueueItem> Peek (void) const;
+
 private:
-  virtual bool DoEnqueue (Ptr<QueueItem> item);
-  virtual Ptr<QueueItem> DoDequeue (void);
-  virtual Ptr<const QueueItem> DoPeek (void) const;
+  virtual bool DoInsert (Ptr<QueueItem> item);
+  virtual Ptr<QueueItem> DoExtract (void);
+  virtual Ptr<const QueueItem> DoPeep (void) const;
 
   std::queue<Ptr<QueueItem> > m_packets; //!< the items in the queue
 };

@@ -47,8 +47,29 @@ DropTailQueue::~DropTailQueue ()
   NS_LOG_FUNCTION (this);
 }
 
-bool 
-DropTailQueue::DoEnqueue (Ptr<QueueItem> item)
+bool
+DropTailQueue::Enqueue (Ptr<QueueItem> item)
+{
+  NS_LOG_FUNCTION (this);
+  return Insert (item);
+}
+
+Ptr<QueueItem>
+DropTailQueue::Dequeue (void)
+{
+  NS_LOG_FUNCTION (this);
+  return Extract ();
+}
+
+Ptr<const QueueItem>
+DropTailQueue::Peek (void) const
+{
+  NS_LOG_FUNCTION (this);
+  return Peep ();
+}
+
+bool
+DropTailQueue::DoInsert (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
   NS_ASSERT (m_packets.size () == GetNPackets ());
@@ -59,7 +80,7 @@ DropTailQueue::DoEnqueue (Ptr<QueueItem> item)
 }
 
 Ptr<QueueItem>
-DropTailQueue::DoDequeue (void)
+DropTailQueue::DoExtract(void)
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (m_packets.size () == GetNPackets ());
@@ -73,7 +94,7 @@ DropTailQueue::DoDequeue (void)
 }
 
 Ptr<const QueueItem>
-DropTailQueue::DoPeek (void) const
+DropTailQueue::DoPeep (void) const
 {
   NS_LOG_FUNCTION (this);
   NS_ASSERT (m_packets.size () == GetNPackets ());

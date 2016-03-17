@@ -92,9 +92,8 @@ Queue::~Queue()
   NS_LOG_FUNCTION (this);
 }
 
-
-bool 
-Queue::Enqueue (Ptr<QueueItem> item)
+bool
+Queue::Insert (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
   Ptr<Packet> p = item->GetPacket ();
@@ -114,9 +113,10 @@ Queue::Enqueue (Ptr<QueueItem> item)
     }
 
   //
-  // If DoEnqueue fails, Queue::Drop is called by the subclass
+  // If DoInsert fails, Queue::Drop is called by the subclass
   //
-  bool retval = DoEnqueue (item);
+  bool retval = DoInsert (item);
+
   if (retval)
     {
       NS_LOG_LOGIC ("m_traceEnqueue (p)");
@@ -133,7 +133,7 @@ Queue::Enqueue (Ptr<QueueItem> item)
 }
 
 Ptr<QueueItem>
-Queue::Dequeue (void)
+Queue::Extract (void)
 {
   NS_LOG_FUNCTION (this);
 
@@ -143,7 +143,7 @@ Queue::Dequeue (void)
       return 0;
     }
 
-  Ptr<QueueItem> item = DoDequeue ();
+  Ptr<QueueItem> item = DoExtract ();
 
   if (item != 0)
     {
@@ -170,7 +170,7 @@ Queue::DequeueAll (void)
 }
 
 Ptr<const QueueItem>
-Queue::Peek (void) const
+Queue::Peep (void) const
 {
   NS_LOG_FUNCTION (this);
 
@@ -180,9 +180,8 @@ Queue::Peek (void) const
       return 0;
     }
 
-  return DoPeek ();
+  return DoPeep ();
 }
-
 
 uint32_t 
 Queue::GetNPackets (void) const
