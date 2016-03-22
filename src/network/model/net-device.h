@@ -47,10 +47,10 @@ class Packet;
  * \ingroup netdevice
  * \brief Base class to represent items of packet Queues
  *
- * An item stored in an ns-3 packet Queue contains a packet and possibly other
- * information. An item of the base class only contains a packet. Subclasses
- * can be derived from this base class to allow items to contain additional
- * information.
+ * An item stored in an ns-3 packet Queue contains a packet (either a Ptr<Packet>
+ * or a Ptr<const Packet>) and possibly other information. An item of the base
+ * class only contains a packet. Subclasses can be derived from this base class
+ * to allow items to contain additional information.
  */
 class QueueItem : public SimpleRefCount<QueueItem>
 {
@@ -61,12 +61,25 @@ public:
    */
   QueueItem (Ptr<Packet> p);
 
+  /**
+   * \brief Create a queue item containing a const packet.
+   * \param p the packet included in the created item.
+   */
+  QueueItem (Ptr<const Packet> p);
+
   virtual ~QueueItem ();
 
   /**
+   * \brief Get the packet included in this item.
    * \return the packet included in this item.
    */
   Ptr<Packet> GetPacket (void) const;
+
+  /**
+   * \brief Get the const packet included in this item.
+   * \return the const packet included in this item.
+   */
+  Ptr<const Packet> GetConstPacket (void) const;
 
   /**
    * \brief Use this method (instead of GetPacket ()->GetSize ()) to get the packet size
@@ -113,6 +126,7 @@ private:
   QueueItem &operator = (const QueueItem &);
 
   Ptr<Packet> m_packet;
+  Ptr<const Packet> m_constPacket;
 };
 
 /**

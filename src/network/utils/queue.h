@@ -210,7 +210,7 @@ protected:
    * the queue is full and by the subclasses to notify parent (this class) that
    * a packet has been dropped for other reasons.
    */
-  void Drop (Ptr<Packet> p);
+  void Drop (Ptr<const Packet> p);
 
   /**
    * Insert an item in the queue (if there is available capacity) and update statistics

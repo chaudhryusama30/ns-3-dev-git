@@ -34,29 +34,57 @@ QueueItem::QueueItem (Ptr<Packet> p)
   m_packet = p;
 }
 
+QueueItem::QueueItem (Ptr<const Packet> p)
+{
+  m_constPacket = p;
+}
+
 QueueItem::~QueueItem()
 {
   NS_LOG_FUNCTION (this);
   m_packet = 0;
+  m_constPacket = 0;
 }
 
 Ptr<Packet>
 QueueItem::GetPacket (void) const
 {
+  NS_ABORT_MSG_IF (m_constPacket != 0, "GetPacket called but this item contains a const packet");
+  return m_packet;
+}
+
+Ptr<const Packet>
+QueueItem::GetConstPacket (void) const
+{
+  if (m_constPacket != 0)
+  {
+    return m_constPacket;
+  }
   return m_packet;
 }
 
 uint32_t
 QueueItem::GetPacketSize (void) const
 {
-  NS_ASSERT (m_packet != 0);
-  return m_packet->GetSize ();
+  NS_ASSERT (m_packet != 0 || m_constPacket != 0);
+  if (m_packet != 0)
+  {
+    return m_packet->GetSize ();
+  }
+  return m_constPacket->GetSize ();
 }
 
 void
 QueueItem::Print (std::ostream& os) const
 {
-  os << GetPacket();
+  if (m_packet != 0)
+  {
+    os << m_packet;
+  }
+  else
+  {
+    os << m_constPacket;
+  }
 }
 
 std::ostream & operator << (std::ostream &os, const QueueItem &item)

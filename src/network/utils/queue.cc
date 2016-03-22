@@ -96,7 +96,7 @@ bool
 Queue::Insert (Ptr<QueueItem> item)
 {
   NS_LOG_FUNCTION (this << item);
-  Ptr<Packet> p = item->GetPacket ();
+  Ptr<const Packet> p = item->GetConstPacket ();
 
   if (m_mode == QUEUE_MODE_PACKETS && (m_nPackets.Get () >= m_maxPackets))
     {
@@ -120,7 +120,7 @@ Queue::Insert (Ptr<QueueItem> item)
   if (retval)
     {
       NS_LOG_LOGIC ("m_traceEnqueue (p)");
-      m_traceEnqueue (item->GetPacket ());
+      m_traceEnqueue (item->GetConstPacket ());
 
       uint32_t size = item->GetPacketSize ();
       m_nBytes += size;
@@ -154,7 +154,7 @@ Queue::Extract (void)
       m_nPackets--;
 
       NS_LOG_LOGIC ("m_traceDequeue (packet)");
-      m_traceDequeue (item->GetPacket ());
+      m_traceDequeue (item->GetConstPacket ());
     }
   return item;
 }
@@ -318,7 +318,7 @@ Queue::GetMaxBytes (void) const
 }
 
 void
-Queue::Drop (Ptr<Packet> p)
+Queue::Drop (Ptr<const Packet> p)
 {
   NS_LOG_FUNCTION (this << p);
 
