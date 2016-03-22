@@ -485,18 +485,24 @@ EdcaTxopN::NotifyAccessGranted (void)
       m_currentPacket = m_baManager->GetNextPacket (m_currentHdr);
       if (m_currentPacket == 0)
         {
-          if (m_queue->PeekFirstAvailable (&m_currentHdr, m_currentPacketTimestamp, m_qosBlockedDestinations) == 0)
+          Ptr<const WifiMacQueueItem> item = m_queue->PeekFirstAvailable (m_qosBlockedDestinations);
+          if (item == 0)
             {
               NS_LOG_DEBUG ("no available packets in the queue");
               return;
             }
+          m_currentHdr = item->GetHeader ();
+          m_currentPacketTimestamp = item->GetTimeStamp ();
           if (m_currentHdr.IsQosData () && !m_currentHdr.GetAddr1 ().IsBroadcast ()
               && !m_baManager->ExistsAgreement (m_currentHdr.GetAddr1 (), m_currentHdr.GetQosTid ())
               && SetupBlockAckIfNeeded ())
             {
               return;
             }
-          m_currentPacket = m_queue->DequeueFirstAvailable (&m_currentHdr, m_currentPacketTimestamp, m_qosBlockedDestinations);
+          item = m_queue->DequeueFirstAvailable (m_qosBlockedDestinations);
+          m_currentPacket = item->GetConstPacket ();
+          m_currentHdr = item->GetHeader ();
+          m_currentPacketTimestamp = item->GetTimeStamp ();
           NS_ASSERT (m_currentPacket != 0);
 
           uint16_t sequence = m_txMiddle->GetNextSequenceNumberfor (&m_currentHdr);
@@ -568,13 +574,14 @@ EdcaTxopN::NotifyAccessGranted (void)
       else
         {
           WifiMacHeader peekedHdr;
-          Time tstamp;
+          Ptr<const WifiMacQueueItem> item;
           if (m_currentHdr.IsQosData ()
-              && m_queue->PeekByTidAndAddress (&peekedHdr, m_currentHdr.GetQosTid (),
-                                               WifiMacHeader::ADDR1, m_currentHdr.GetAddr1 (), &tstamp)
+              && (item = m_queue->PeekByTidAndAddress (m_currentHdr.GetQosTid (),
+                                                       WifiMacHeader::ADDR1, m_currentHdr.GetAddr1 ()))
               && !m_currentHdr.GetAddr1 ().IsBroadcast ()
               && m_msduAggregator != 0 && !m_currentHdr.IsRetry ())
             {
+              peekedHdr = item->GetHeader ();
               /* here is performed aggregation */
               Ptr<Packet> currentAggregatedPacket = Create<Packet> ();
               m_msduAggregator->Aggregate (m_currentPacket, currentAggregatedPacket,
@@ -582,25 +589,26 @@ EdcaTxopN::NotifyAccessGranted (void)
                                        MapDestAddressForAggregation (peekedHdr));
               bool aggregated = false;
               bool isAmsdu = false;
-              Ptr<const Packet> peekedPacket = m_queue->PeekByTidAndAddress (&peekedHdr, m_currentHdr.GetQosTid (),
-                                                                             WifiMacHeader::ADDR1,
-                                                                             m_currentHdr.GetAddr1 (), &tstamp);
-              while (peekedPacket != 0)
+              Ptr<const WifiMacQueueItem> peekedItem = m_queue->PeekByTidAndAddress (m_currentHdr.GetQosTid (),
+                                                                               WifiMacHeader::ADDR1,
+                                                                               m_currentHdr.GetAddr1 ());
+              while (peekedItem != 0)
                 {
-                  aggregated = m_msduAggregator->Aggregate (peekedPacket, currentAggregatedPacket,
+                  peekedHdr = peekedItem->GetHeader ();
+                  aggregated = m_msduAggregator->Aggregate (peekedItem->GetConstPacket (), currentAggregatedPacket,
                                                         MapSrcAddressForAggregation (peekedHdr),
                                                         MapDestAddressForAggregation (peekedHdr));
                   if (aggregated)
                     {
                       isAmsdu = true;
-                      m_queue->Remove (peekedPacket);
+                      m_queue->Remove (peekedItem);
                     }
                   else
                     {
                       break;
                     }
-                  peekedPacket = m_queue->PeekByTidAndAddress (&peekedHdr, m_currentHdr.GetQosTid (),
-                                                               WifiMacHeader::ADDR1, m_currentHdr.GetAddr1 (), &tstamp);
+                  peekedItem = m_queue->PeekByTidAndAddress (m_currentHdr.GetQosTid (),
+                                                             WifiMacHeader::ADDR1, m_currentHdr.GetAddr1 ());
                 }
               if (isAmsdu)
                 {
@@ -731,7 +739,7 @@ EdcaTxopN::NotifySleep (void)
   NS_LOG_FUNCTION (this);
   if (m_currentPacket != 0)
     {
-      m_queue->PushFront (m_currentPacket, m_currentHdr);
+      m_queue->PushFront (Create<WifiMacQueueItem> (m_currentPacket, m_currentHdr));
       m_currentPacket = 0;
     }
 }
@@ -749,7 +757,7 @@ EdcaTxopN::Queue (Ptr<const Packet> packet, const WifiMacHeader &hdr)
   NS_LOG_FUNCTION (this << packet << &hdr);
   WifiMacTrailer fcs;
   m_stationManager->PrepareForQueue (hdr.GetAddr1 (), &hdr, packet);
-  m_queue->Enqueue (packet, hdr);
+  m_queue->PushBack (Create<WifiMacQueueItem> (packet, hdr));
   StartAccessIfNeeded ();
 }
 
@@ -1206,7 +1214,7 @@ EdcaTxopN::PushFront (Ptr<const Packet> packet, const WifiMacHeader &hdr)
   NS_LOG_FUNCTION (this << packet << &hdr);
   WifiMacTrailer fcs;
   m_stationManager->PrepareForQueue (hdr.GetAddr1 (), &hdr, packet);
-  m_queue->PushFront (packet, hdr);
+  m_queue->PushFront (Create<WifiMacQueueItem> (packet, hdr));
   StartAccessIfNeeded ();
 }
 

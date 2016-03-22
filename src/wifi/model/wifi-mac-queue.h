@@ -18,6 +18,7 @@
  *
  * Authors: Mathieu Lacage <mathieu.lacage@sophia.inria.fr>
  *          Mirko Banchi <mk.banchi@gmail.com>
+ *          Stefano Avallone <stavallo@unina.it>
  */
 
 #ifndef WIFI_MAC_QUEUE_H
@@ -28,10 +29,84 @@
 #include "ns3/packet.h"
 #include "ns3/nstime.h"
 #include "ns3/object.h"
+#include "ns3/queue.h"
 #include "wifi-mac-header.h"
 
 namespace ns3 {
 class QosBlockedDestinations;
+
+/**
+ * \ingroup wifi
+ *
+ * WifiMacQueueItem is a subclass of QueueItem which stores (const) packets
+ * along with their Wifi MAC headers and the time when they were enqueued.
+ */
+class WifiMacQueueItem : public QueueItem {
+public:
+  /**
+   * \brief Create a Wifi MAC queue item containing a packet and a Wifi MAC header.
+   * \param p the const packet included in the created item.
+   * \param header the Wifi Mac header included in the created item.
+   */
+  WifiMacQueueItem (Ptr<const Packet> p, const WifiMacHeader & header);
+
+  virtual ~WifiMacQueueItem ();
+
+  /**
+   * \brief Get the header stored in this item
+   * \return the header stored in this item.
+   */
+  const WifiMacHeader & GetHeader (void) const;
+
+  /**
+   * \brief Return the requested address present in the header
+   * \param type the type of the address to return
+   * \return the address
+   */
+  Mac48Address GetAddress (enum WifiMacHeader::AddressType type) const;
+
+  /**
+   * \brief Get the timestamp included in this item
+   * \return the timestamp included in this item.
+   */
+  Time GetTimeStamp (void) const;
+
+  /**
+   * \brief Set the timestamp to store in this item
+   * \param tstamp the timestamp to store in this item.
+   */
+  void SetTimeStamp (Time tstamp);
+
+  /**
+   * \brief Print the item contents.
+   * \param os output stream in which the data should be printed.
+   */
+  virtual void Print (std::ostream &os) const;
+
+private:
+  /**
+   * \brief Default constructor
+   *
+   * Defined and unimplemented to avoid misuse
+   */
+  WifiMacQueueItem ();
+  /**
+   * \brief Copy constructor
+   *
+   * Defined and unimplemented to avoid misuse
+   */
+  WifiMacQueueItem (const WifiMacQueueItem &);
+  /**
+   * \brief Assignment operator
+   *
+   * Defined and unimplemented to avoid misuse
+   * \returns
+   */
+  WifiMacQueueItem &operator = (const WifiMacQueueItem &);
+
+  WifiMacHeader m_header;   //!< Wifi MAC header associated with the packet
+  Time m_tstamp;            //!< timestamp when the packet arrived at the queue
+};
 
 /**
  * \ingroup wifi
@@ -48,7 +123,7 @@ class QosBlockedDestinations;
  * dot11EDCATableMSDULifetime has elapsed, it is dropped.
  * Otherwise, it is returned to the caller.
  */
-class WifiMacQueue : public Object
+class WifiMacQueue : public Queue
 {
 public:
   static TypeId GetTypeId (void);
@@ -56,23 +131,11 @@ public:
   ~WifiMacQueue ();
 
   /**
-   * Set the maximum queue size.
-   *
-   * \param maxSize the maximum queue size
-   */
-  void SetMaxSize (uint32_t maxSize);
-  /**
    * Set the maximum delay before the packet is discarded.
    *
    * \param delay the maximum delay
    */
   void SetMaxDelay (Time delay);
-  /**
-   * Return the maximum queue size.
-   *
-   * \return the maximum queue size
-   */
-  uint32_t GetMaxSize (void) const;
   /**
    * Return the maximum delay before the packet is discarded.
    *
@@ -81,86 +144,102 @@ public:
   Time GetMaxDelay (void) const;
 
   /**
-   * Enqueue the given packet and its corresponding WifiMacHeader at the <i>end</i> of the queue.
-   *
-   * \param packet the packet to be euqueued at the end
-   * \param hdr the header of the given packet
+   * Do NOT use this method, use PushBack instead.
    */
-  void Enqueue (Ptr<const Packet> packet, const WifiMacHeader &hdr);
+  virtual bool Enqueue (Ptr<QueueItem> item);
   /**
-   * Enqueue the given packet and its corresponding WifiMacHeader at the <i>front</i> of the queue.
-   *
-   * \param packet the packet to be euqueued at the end
-   * \param hdr the header of the given packet
+   * Do NOT use this method, use PopFront instead.
    */
-  void PushFront (Ptr<const Packet> packet, const WifiMacHeader &hdr);
+  virtual Ptr<QueueItem> Dequeue (void);
   /**
-   * Dequeue the packet in the front of the queue.
-   *
-   * \param hdr the WifiMacHeader of the packet
-   *
-   * \return the packet
+   * Do NOT use this method, use PeekFront instead.
    */
-  Ptr<const Packet> Dequeue (WifiMacHeader *hdr);
+  virtual Ptr<const QueueItem> Peek (void) const;
+
   /**
-   * Peek the packet in the front of the queue. The packet is not removed.
+   * Enqueue the given item at the <i>end</i> of the queue.
    *
-   * \param hdr the WifiMacHeader of the packet
-   *
-   * \return the packet
+   * \param item the WifiMacQueueItem object to be enqueued at the end
+   * \return true if the operation was successful; false otherwise
    */
-  Ptr<const Packet> Peek (WifiMacHeader *hdr);
+  virtual bool PushBack (Ptr<WifiMacQueueItem> item);
   /**
-   * Searchs and returns, if is present in this queue, first packet having
-   * address indicated by <i>type</i> equals to <i>addr</i>, and tid
-   * equals to <i>tid</i>. This method removes the packet from this queue.
-   * Is typically used by ns3::EdcaTxopN in order to perform correct MSDU
+   * Dequeue the item in the front of the queue.
+   *
+   * \return the WifiMacQueueItem object
+   */
+  virtual Ptr<WifiMacQueueItem> PopFront (void);
+  /**
+   * Peek the item in the front of the queue. The packet is not removed.
+   *
+   * \return the WifiMacQueueItem object
+   */
+  virtual Ptr<const WifiMacQueueItem> PeekFront (void);
+  /**
+   * Enqueue the given item at the <i>front</i> of the queue.
+   * Note that an assert will fail in DoInsert if you attempt to enqueue
+   * an item of type other than WifiMacQueueItem.
+   *
+   * \param item the WifiMacQueueItem object to be enqueued at the front
+   *
+   * \return true if the operation was successful; false otherwise
+   */
+  bool PushFront (Ptr<WifiMacQueueItem> item);
+  /**
+   * Search and return, if it is present in this queue, the first item having
+   * the address indicated by <i>type</i> equal to <i>addr</i>, and tid
+   * equal to <i>tid</i>. This method removes the item from this queue.
+   * It is typically used by ns3::EdcaTxopN in order to perform correct MSDU
    * aggregation (A-MSDU).
    *
-   * \param hdr the header of the dequeued packet
    * \param tid the given TID
    * \param type the given address type
    * \param addr the given destination
    *
-   * \return packet
+   * \return the item
    */
-  Ptr<const Packet> DequeueByTidAndAddress (WifiMacHeader *hdr,
-                                            uint8_t tid,
-                                            WifiMacHeader::AddressType type,
-                                            Mac48Address addr);
+  Ptr<WifiMacQueueItem> DequeueByTidAndAddress (uint8_t tid,
+                                                WifiMacHeader::AddressType type,
+                                                Mac48Address addr);
   /**
-   * Searchs and returns, if is present in this queue, first packet having
-   * address indicated by <i>type</i> equals to <i>addr</i>, and tid
-   * equals to <i>tid</i>. This method doesn't remove the packet from this queue.
-   * Is typically used by ns3::EdcaTxopN in order to perform correct MSDU
+   * Search and return, if it is present in this queue, the first item having
+   * the address indicated by <i>type</i> equal to <i>addr</i>, and tid
+   * equal to <i>tid</i>. This method does not remove the item from this queue.
+   * It is typically used by ns3::EdcaTxopN in order to perform correct MSDU
    * aggregation (A-MSDU).
    *
-   * \param hdr the header of the dequeued packet
    * \param tid the given TID
    * \param type the given address type
    * \param addr the given destination
-   * \param timestamp
    *
-   * \return packet
+   * \return the item
    */
-  Ptr<const Packet> PeekByTidAndAddress (WifiMacHeader *hdr,
-                                         uint8_t tid,
-                                         WifiMacHeader::AddressType type,
-                                         Mac48Address addr,
-                                         Time *timestamp);
+  Ptr<const WifiMacQueueItem> PeekByTidAndAddress (uint8_t tid,
+                                             WifiMacHeader::AddressType type,
+                                             Mac48Address addr);
   /**
-   * If exists, removes <i>packet</i> from queue and returns true. Otherwise it
+   * If exists, remove <i>item</i> from this queue and return true. Otherwise, it
    * takes no effects and return false. Deletion of the packet is
    * performed in linear time (O(n)).
+   *
+   * \param item the item to be removed
+   *
+   * \return true if the item was removed, false otherwise
+   */
+  bool Remove (Ptr<const WifiMacQueueItem> item);
+  /**
+   * If exists, remove the item storing the given <i>packet</i> from this queue
+   * and return true. Otherwise, it takes no effects and return false. Deletion
+   * of the packet is performed in linear time (O(n)).
    *
    * \param packet the packet to be removed
    *
    * \return true if the packet was removed, false otherwise
    */
-  bool Remove (Ptr<const Packet> packet);
+  bool RemovePacket (Ptr<const Packet> p);
   /**
-   * Returns number of QoS packets having tid equals to <i>tid</i> and address
-   * specified by <i>type</i> equals to <i>addr</i>.
+   * Return the number of QoS packets having tid equal to <i>tid</i> and the
+   * address specified by <i>type</i> equal to <i>addr</i>.
    *
    * \param tid the given TID
    * \param type the given address type
@@ -172,51 +251,32 @@ public:
                                        WifiMacHeader::AddressType type,
                                        Mac48Address addr);
   /**
-   * Returns first available packet for transmission. A packet could be no available
-   * if it's a QoS packet with a tid and an address1 fields equal to <i>tid</i> and <i>addr</i>
-   * respectively that index a pending agreement in the BlockAckManager object.
-   * So that packet must not be transmitted until reception of an ADDBA response frame from station
-   * addressed by <i>addr</i>. This method removes the packet from queue.
+   * Return the item storing the first packet available for transmission. A packet
+   * could not be available if it is a QoS packet with a tid and an address1 field
+   * equal to <i>tid</i> and <i>addr</i> respectively that index a pending agreement
+   * in the BlockAckManager object. Such packet must not be transmitted until
+   * reception of an ADDBA response frame from the station addressed by <i>addr</i>.
+   * This method removes the item from queue.
    *
-   * \param hdr the header of the dequeued packet
-   * \param tStamp
    * \param blockedPackets
    *
-   * \return packet
+   * \return the item
    */
-  Ptr<const Packet> DequeueFirstAvailable (WifiMacHeader *hdr,
-                                           Time &tStamp,
-                                           const QosBlockedDestinations *blockedPackets);
+  Ptr<WifiMacQueueItem> DequeueFirstAvailable (const QosBlockedDestinations *blockedPackets);
   /**
-   * Returns first available packet for transmission. The packet isn't removed from queue.
+   * Return the item storing the first packet available for transmission. The packet
+   * is not removed from queue.
    *
-   * \param hdr the header of the dequeued packet
-   * \param tStamp
    * \param blockedPackets
    *
-   * \return packet
+   * \return the item
    */
-  Ptr<const Packet> PeekFirstAvailable (WifiMacHeader *hdr,
-                                        Time &tStamp,
-                                        const QosBlockedDestinations *blockedPackets);
+  Ptr<const WifiMacQueueItem> PeekFirstAvailable (const QosBlockedDestinations *blockedPackets);
+
   /**
    * Flush the queue.
    */
   void Flush (void);
-
-  /**
-   * Return if the queue is empty.
-   *
-   * \return true if the queue is empty, false otherwise
-   */
-  bool IsEmpty (void);
-  /**
-   * Return the current queue size.
-   *
-   * \return the current queue size
-   */
-  uint32_t GetSize (void);
-
 
 protected:
   /**
@@ -225,51 +285,25 @@ protected:
   virtual void Cleanup (void);
 
   /**
-   * A struct that holds information about a packet for putting
-   * in a packet queue.
+   * typedef for packet queue.
    */
-  struct Item
-  {
-    /**
-     * Create a struct with the given parameters.
-     *
-     * \param packet
-     * \param hdr
-     * \param tstamp
-     */
-    Item (Ptr<const Packet> packet,
-          const WifiMacHeader &hdr,
-          Time tstamp);
-    Ptr<const Packet> packet; //!< Actual packet
-    WifiMacHeader hdr;        //!< Wifi MAC header associated with the packet
-    Time tstamp;              //!< timestamp when the packet arrived at the queue
-  };
+  typedef std::list<Ptr<WifiMacQueueItem> > PacketQueue;
+  /**
+   * typedef for packet queue const iterator.
+   */
+  typedef std::list<Ptr<WifiMacQueueItem> >::const_iterator PacketQueueCI;
+  /**
+   * typedef for packet queue iterator.
+   */
+  typedef std::list<Ptr<WifiMacQueueItem> >::iterator PacketQueueI;
 
-  /**
-   * typedef for packet (struct Item) queue.
-   */
-  typedef std::list<struct Item> PacketQueue;
-  /**
-   * typedef for packet (struct Item) queue reverse iterator.
-   */
-  typedef std::list<struct Item>::reverse_iterator PacketQueueRI;
-  /**
-   * typedef for packet (struct Item) queue iterator.
-   */
-  typedef std::list<struct Item>::iterator PacketQueueI;
-  /**
-   * Return the appropriate address for the given packet (given by PacketQueue iterator).
-   *
-   * \param type
-   * \param it
-   *
-   * \return the address
-   */
-  Mac48Address GetAddressForPacket (enum WifiMacHeader::AddressType type, PacketQueueI it);
+private:
+  virtual bool DoInsert (Ptr<QueueItem> item);
+  virtual Ptr<QueueItem> DoExtract (void);
+  virtual Ptr<const QueueItem> DoPeep (void) const;
 
-  PacketQueue m_queue; //!< Packet (struct Item) queue
-  uint32_t m_size;     //!< Current queue size
-  uint32_t m_maxSize;  //!< Queue capacity
+  PacketQueue m_queue; //!< Packet queue
+  PacketQueueI m_pos;  //!< Iterator pointing to the position in which operations are to be performed
   Time m_maxDelay;     //!< Time to live for packets in the queue
 };
 

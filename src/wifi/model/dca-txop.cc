@@ -281,7 +281,7 @@ DcaTxop::Queue (Ptr<const Packet> packet, const WifiMacHeader &hdr)
   NS_LOG_FUNCTION (this << packet << &hdr);
   WifiMacTrailer fcs;
   m_stationManager->PrepareForQueue (hdr.GetAddr1 (), &hdr, packet);
-  m_queue->Enqueue (packet, hdr);
+  m_queue->PushBack (Create<WifiMacQueueItem> (packet, hdr));
   StartAccessIfNeeded ();
 }
 
@@ -434,7 +434,10 @@ DcaTxop::NotifyAccessGranted (void)
           NS_LOG_DEBUG ("queue empty");
           return;
         }
-      m_currentPacket = m_queue->Dequeue (&m_currentHdr);
+      Ptr<WifiMacQueueItem> item = StaticCast<WifiMacQueueItem> (m_queue->PopFront ());
+      NS_ASSERT (item != 0);
+      m_currentPacket = item->GetConstPacket ();
+      m_currentHdr = item->GetHeader ();
       NS_ASSERT (m_currentPacket != 0);
       uint16_t sequence = m_txMiddle->GetNextSequenceNumberfor (&m_currentHdr);
       m_currentHdr.SetSequenceNumber (sequence);
@@ -520,7 +523,7 @@ DcaTxop::NotifySleep (void)
   NS_LOG_FUNCTION (this);
   if (m_currentPacket != 0)
     {
-      m_queue->PushFront (m_currentPacket, m_currentHdr);
+      m_queue->PushFront (Create<WifiMacQueueItem> (m_currentPacket, m_currentHdr));
       m_currentPacket = 0;
     }
 }
