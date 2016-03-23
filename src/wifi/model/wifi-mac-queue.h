@@ -78,6 +78,18 @@ public:
   void SetTimeStamp (Time tstamp);
 
   /**
+   * \brief Get the id of the event scheduled to remove this item from the queue
+   * \return the id of the event scheduled to remove this item from the queue.
+   */
+  EventId GetRemoveEvent (void) const;
+
+  /**
+   * \brief Set the id of the event scheduled to remove this item from the queue
+   * \param eid the id of the event scheduled to remove this item from the queue.
+   */
+  void SetRemoveEvent (EventId eid);
+
+  /**
    * \brief Print the item contents.
    * \param os output stream in which the data should be printed.
    */
@@ -106,6 +118,7 @@ private:
 
   WifiMacHeader m_header;   //!< Wifi MAC header associated with the packet
   Time m_tstamp;            //!< timestamp when the packet arrived at the queue
+  EventId m_removeEvent;    //!< id of the event scheduled to remove this item from the queue
 };
 
 /**
@@ -279,11 +292,6 @@ public:
   void Flush (void);
 
 protected:
-  /**
-   * Clean up the queue by removing packets that exceeded the maximum delay.
-   */
-  virtual void Cleanup (void);
-
   /**
    * typedef for packet queue.
    */

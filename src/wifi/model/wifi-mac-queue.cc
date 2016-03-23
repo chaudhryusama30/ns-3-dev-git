@@ -78,6 +78,18 @@ WifiMacQueueItem::SetTimeStamp (Time tstamp)
   m_tstamp = tstamp;
 }
 
+EventId
+WifiMacQueueItem::GetRemoveEvent (void) const
+{
+  return m_removeEvent;
+}
+
+void
+WifiMacQueueItem::SetRemoveEvent (EventId eid)
+{
+  m_removeEvent = eid;
+}
+
 void
 WifiMacQueueItem::Print (std::ostream& os) const
 {
@@ -134,6 +146,9 @@ WifiMacQueue::DoInsert (Ptr<QueueItem> item)
   Ptr<WifiMacQueueItem> wmqi = StaticCast<WifiMacQueueItem> (item);
   wmqi->SetTimeStamp (Simulator::Now ());
   m_queue.insert (m_pos, wmqi);
+  EventId eid = Simulator::Schedule (m_maxDelay, &WifiMacQueue::Remove,
+                                     this, wmqi);
+  wmqi->SetRemoveEvent (eid);
   return true;
 }
 
@@ -143,6 +158,7 @@ WifiMacQueue::DoExtract (void)
   NS_ASSERT (m_queue.size () == GetNPackets ());
 
   Ptr<WifiMacQueueItem> wmqi = *m_pos;
+  Simulator::Cancel (wmqi->GetRemoveEvent ());
   m_pos = m_queue.erase (m_pos);
   return wmqi;
 }
@@ -167,28 +183,6 @@ WifiMacQueue::PushBack (Ptr<WifiMacQueueItem> item)
   Cleanup ();
   m_pos = m_queue.end ();
   return Insert (item);
-}
-
-void
-WifiMacQueue::Cleanup (void)
-{
-  if (m_queue.empty ())
-    {
-      return;
-    }
-
-  Time now = Simulator::Now ();
-  for (m_pos = m_queue.begin (); m_pos != m_queue.end (); )
-    {
-      if ((*m_pos)->GetTimeStamp () + m_maxDelay > now)
-        {
-          m_pos++;
-        }
-      else
-        {
-          Extract ();
-        }
-    }
 }
 
 Ptr<QueueItem>
@@ -222,7 +216,6 @@ WifiMacQueue::PeekFront (void)
 Ptr<WifiMacQueueItem>
 WifiMacQueue::DequeueByTidAndAddress (uint8_t tid, WifiMacHeader::AddressType type, Mac48Address dest)
 {
-  Cleanup ();
   for (m_pos = m_queue.begin (); m_pos != m_queue.end (); ++m_pos)
     {
       if ((*m_pos)->GetHeader ().IsQosData () && (*m_pos)->GetAddress (type) == dest &&
@@ -238,7 +231,6 @@ WifiMacQueue::DequeueByTidAndAddress (uint8_t tid, WifiMacHeader::AddressType ty
 Ptr<const WifiMacQueueItem>
 WifiMacQueue::PeekByTidAndAddress (uint8_t tid, WifiMacHeader::AddressType type, Mac48Address dest)
 {
-  Cleanup ();
   for (m_pos = m_queue.begin (); m_pos != m_queue.end (); ++m_pos)
     {
       if ((*m_pos)->GetHeader ().IsQosData () && (*m_pos)->GetAddress (type) == dest &&
@@ -284,7 +276,6 @@ WifiMacQueue::RemovePacket (Ptr<const Packet> p)
 bool
 WifiMacQueue::PushFront (Ptr<WifiMacQueueItem> item)
 {
-  Cleanup ();
   m_pos = m_queue.begin ();
   return Insert (item);
 }
@@ -293,7 +284,6 @@ uint32_t
 WifiMacQueue::GetNPacketsByTidAndAddress (uint8_t tid, WifiMacHeader::AddressType type,
                                           Mac48Address addr)
 {
-  Cleanup ();
   uint32_t nPackets = 0;
   for (m_pos = m_queue.begin (); m_pos != m_queue.end (); m_pos++)
     {
@@ -308,7 +298,6 @@ WifiMacQueue::GetNPacketsByTidAndAddress (uint8_t tid, WifiMacHeader::AddressTyp
 Ptr<WifiMacQueueItem>
 WifiMacQueue::DequeueFirstAvailable (const QosBlockedDestinations *blockedPackets)
 {
-  Cleanup ();
   for (m_pos = m_queue.begin (); m_pos != m_queue.end (); m_pos++)
     {
       if (!(*m_pos)->GetHeader ().IsQosData ()
@@ -323,7 +312,6 @@ WifiMacQueue::DequeueFirstAvailable (const QosBlockedDestinations *blockedPacket
 Ptr<const WifiMacQueueItem>
 WifiMacQueue::PeekFirstAvailable (const QosBlockedDestinations *blockedPackets)
 {
-  Cleanup ();
   for (m_pos = m_queue.begin (); m_pos != m_queue.end (); m_pos++)
     {
       if (!(*m_pos)->GetHeader ().IsQosData ()
