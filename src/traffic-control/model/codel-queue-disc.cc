@@ -183,6 +183,16 @@ TypeId CoDelQueueDisc::GetTypeId (void)
                    StringValue ("5ms"),
                    MakeTimeAccessor (&CoDelQueueDisc::m_target),
                    MakeTimeChecker ())
+    .AddAttribute ("UseEcn",
+                   "True to use ECN (packets are marked instead of being dropped)",
+                   BooleanValue (false),
+                   MakeBooleanAccessor (&CoDelQueueDisc::m_useEcn),
+                   MakeBooleanChecker ())
+    .AddAttribute ("CeThreshold",
+                   "The CoDel algorithm ce_threshold parameter.",
+                   UintegerValue (std::numeric_limits<uint32_t>::max ()),
+                   MakeUintegerAccessor (&CoDelQueueDisc::m_ceThreshold),
+                   MakeUintegerChecker<uint32_t> ())
     .AddTraceSource ("Count",
                      "CoDel count",
                      MakeTraceSourceAccessor (&CoDelQueueDisc::m_count),
@@ -194,6 +204,14 @@ TypeId CoDelQueueDisc::GetTypeId (void)
     .AddTraceSource ("LastCount",
                      "CoDel lastcount",
                      MakeTraceSourceAccessor (&CoDelQueueDisc::m_lastCount),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("EcnMark",
+                     "CoDel ecn mark",
+                     MakeTraceSourceAccessor (&CoDelQueueDisc::m_ecnMark),
+                     "ns3::TracedValueCallback::Uint32")
+    .AddTraceSource ("CeMark",
+                     "CoDel ce mark",
+                     MakeTraceSourceAccessor (&CoDelQueueDisc::m_ceMark),
                      "ns3::TracedValueCallback::Uint32")
     .AddTraceSource ("DropState",
                      "Dropping state",
@@ -218,6 +236,8 @@ CoDelQueueDisc::CoDelQueueDisc ()
     m_count (0),
     m_dropCount (0),
     m_lastCount (0),
+    m_ecnMark (0),
+    m_ceMark (0),
     m_dropping (false),
     m_recInvSqrt (~0U >> REC_INV_SQRT_SHIFT),
     m_firstAboveTime (0),
@@ -398,12 +418,26 @@ CoDelQueueDisc::DoDequeue (void)
               // A large amount of packets in queue might result in drop
               // rates so high that the next drop should happen now,
               // hence the while loop.
+              ++m_count;
+              NewtonStep ();
+              if (m_useEcn && item->Mark ())
+                {
+                  NS_LOG_LOGIC ("ECN marking the packet");
+                  m_ecnMark++;
+                  m_dropNext = ControlLaw (m_dropNext);
+
+                  if (item && CoDelTimeAfter (Time2CoDel (m_sojourn), m_ceThreshold) && item->Mark ())
+                    {
+                      NS_LOG_LOGIC ("CE marking the packet");
+                      m_ceMark++;
+                    }
+                  return item;
+                }
+
               NS_LOG_LOGIC ("Sojourn time is still above target and it's time for next drop; dropping " << item);
               Drop (item);
 
               ++m_dropCount;
-              ++m_count;
-              NewtonStep ();
               item = StaticCast<QueueDiscItem> (GetInternalQueue (0)->Dequeue ());
 
               if (item)
@@ -436,21 +470,28 @@ CoDelQueueDisc::DoDequeue (void)
       NS_LOG_LOGIC ("Not in dropping state; decide if we have to enter the state and drop the first packet");
       if (okToDrop)
         {
-          // Drop the first packet and enter dropping state unless the queue is empty
-          NS_LOG_LOGIC ("Sojourn time goes above target, dropping the first packet " << item << " and entering the dropping state");
-          ++m_dropCount;
-          Drop (item);
-
-          item = StaticCast<QueueDiscItem> (GetInternalQueue (0)->Dequeue ());
-
-          if (item)
+          if (m_useEcn && item->Mark ())
             {
-              NS_LOG_LOGIC ("Popped " << item);
-              NS_LOG_LOGIC ("Number packets remaining " << GetInternalQueue (0)->GetNPackets ());
-              NS_LOG_LOGIC ("Number bytes remaining " << GetInternalQueue (0)->GetNBytes ());
+              m_ecnMark++;
             }
+          else
+            {
+              // Drop the first packet and enter dropping state unless the queue is empty
+              NS_LOG_LOGIC ("Sojourn time goes above target, dropping the first packet " << item << " and entering the dropping state");
+              ++m_dropCount;
+              Drop (item);
 
-          OkToDrop (item, now);
+              item = StaticCast<QueueDiscItem> (GetInternalQueue (0)->Dequeue ());
+
+              if (item)
+                {
+                  NS_LOG_LOGIC ("Popped " << item);
+                  NS_LOG_LOGIC ("Number packets remaining " << GetInternalQueue (0)->GetNPackets ());
+                  NS_LOG_LOGIC ("Number bytes remaining " << GetInternalQueue (0)->GetNBytes ());
+                }
+
+              OkToDrop (item, now);
+            }
           m_dropping = true;
           ++m_state3;
           /*
@@ -476,6 +517,11 @@ CoDelQueueDisc::DoDequeue (void)
         }
     }
   ++m_states;
+  if (item && CoDelTimeAfter (Time2CoDel (m_sojourn), m_ceThreshold) && item->Mark ())
+    {
+      NS_LOG_LOGIC ("CE marking the packet");
+      m_ceMark++;
+    }
   return item;
 }
 
@@ -507,6 +553,18 @@ uint32_t
 CoDelQueueDisc::GetDropCount (void)
 {
   return m_dropCount;
+}
+
+uint32_t
+CoDelQueueDisc::GetEcnMark (void)
+{
+  return m_ecnMark;
+}
+
+uint32_t
+CoDelQueueDisc::GetCeMark (void)
+{
+  return m_ceMark;
 }
 
 Time

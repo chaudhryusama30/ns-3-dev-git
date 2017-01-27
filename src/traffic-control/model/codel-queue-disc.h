@@ -115,6 +115,20 @@ public:
   uint32_t GetDropCount (void);
 
   /**
+   * \brief Get the number of packets ECN marked according to CoDel algorithm
+   *
+   * \returns The number of ECN marked packets
+   */
+  uint32_t GetEcnMark (void);
+
+  /**
+   * \brief Get the number of packets CE marked according to CoDel algorithm
+   *
+   * \returns The number of CE marked packets
+   */
+  uint32_t GetCeMark (void);
+
+  /**
    * \brief Get the target queue delay
    *
    * \returns The target queue delay
@@ -233,6 +247,8 @@ private:
   TracedValue<uint32_t> m_count;          //!< Number of packets dropped since entering drop state
   TracedValue<uint32_t> m_dropCount;      //!< Number of dropped packets according CoDel algorithm
   TracedValue<uint32_t> m_lastCount;      //!< Last number of packets dropped since entering drop state
+  TracedValue<uint32_t> m_ecnMark;        //!< Number of packets we ECN marked instead of dropping
+  TracedValue<uint32_t> m_ceMark;         //!< Number of packets CE marked because sojourn time was above ce_threshold
   TracedValue<bool> m_dropping;           //!< True if in dropping state
   uint16_t m_recInvSqrt;                  //!< Reciprocal inverse square root
   uint32_t m_firstAboveTime;              //!< Time to declare sojourn time above target
@@ -242,8 +258,10 @@ private:
   uint32_t m_state3;                      //!< Number of times we enter drop state and drop the fist packet
   uint32_t m_states;                      //!< Total number of times we are in state 1, state 2, or state 3
   uint32_t m_dropOverLimit;               //!< The number of packets dropped due to full queue
-  Queue::QueueMode     m_mode;                   //!< The operating mode (Bytes or packets)
+  Queue::QueueMode m_mode;                //!< The operating mode (Bytes or packets)
   TracedValue<Time> m_sojourn;            //!< Time in queue
+  bool m_useEcn;                          //!< True if ECN is used (packets are marked instead of being dropped)
+  uint32_t m_ceThreshold;                 //!< Threshold for marking packets with ECN CE
 };
 
 } // namespace ns3
