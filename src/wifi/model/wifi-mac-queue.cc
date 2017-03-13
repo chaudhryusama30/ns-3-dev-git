@@ -111,6 +111,7 @@ WifiMacQueue::GetTypeId (void)
 
 template<>
 WifiMacQueue::WifiQueue ()
+  : g_log (GetLogComponent ("WifiMacQueue"))
 {
 }
 

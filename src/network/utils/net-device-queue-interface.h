@@ -192,14 +192,6 @@ public:
                                uint8_t txq, Ptr<const Item> item);
 
 private:
-  /**
-   * \brief Pass messages to the ns-3 logging system
-   *
-   * \param level the log level
-   * \param str the message to log
-   */
-  static void DoNsLog (const enum LogLevel level, std::string str);
-
   bool m_stoppedByDevice;         //!< True if the queue has been stopped by the device
   bool m_stoppedByQueueLimits;    //!< True if the queue has been stopped by a queue limits object
   Ptr<QueueLimits> m_queueLimits; //!< Queue limits object
@@ -336,14 +328,6 @@ private:
 };
 
 
-#define NDQI_LOG(level,params)   \
-  {                              \
-    std::stringstream ss;        \
-    ss << params;                \
-    DoNsLog (level, ss.str ());  \
-  }
-
-
 /**
  * Implementation of the templates declared above.
  */
@@ -375,8 +359,9 @@ NetDeviceQueue::PacketEnqueued (Ptr<Queue<Item> > queue,
                                 Ptr<NetDeviceQueueInterface> ndqi,
                                 uint8_t txq, Ptr<const Item> item)
 {
-  NDQI_LOG (LOG_LOGIC, "NetDeviceQueue:PacketEnqueued(" << queue << ", " << ndqi
-            << ", " << txq << ", " << item << ")");
+  static LogComponent & g_log = GetLogComponent ("NetDeviceQueueInterface");
+
+  NS_LOG_FUNCTION (queue << ndqi << txq << item);
 
   // Inform BQL
   ndqi->GetTxQueue (txq)->NotifyQueuedBytes (item->GetSize ());
@@ -391,8 +376,8 @@ NetDeviceQueue::PacketEnqueued (Ptr<Queue<Item> > queue,
       (queue->GetMode () == QueueBase::QUEUE_MODE_BYTES &&
        queue->GetNBytes () + mtu > queue->GetMaxBytes ()))
     {
-      NDQI_LOG (LOG_DEBUG, "The device queue is being stopped (" << queue->GetNPackets ()
-                << " packets and " << queue->GetNBytes () << " bytes inside)");
+      NS_LOG_DEBUG ("The device queue is being stopped (" << queue->GetNPackets ()
+                    << " packets and " << queue->GetNBytes () << " bytes inside)");
       ndqi->GetTxQueue (txq)->Stop ();
     }
 }
@@ -403,8 +388,9 @@ NetDeviceQueue::PacketDequeued (Ptr<Queue<Item> > queue,
                                 Ptr<NetDeviceQueueInterface> ndqi,
                                 uint8_t txq, Ptr<const Item> item)
 {
-  NDQI_LOG (LOG_LOGIC, "NetDeviceQueue:PacketDequeued(" << queue << ", " << ndqi
-            << ", " << txq << ", " << item << ")");
+  static LogComponent & g_log = GetLogComponent ("NetDeviceQueueInterface");
+
+  NS_LOG_FUNCTION (queue << ndqi << txq << item);
 
   // Inform BQL
   ndqi->GetTxQueue (txq)->NotifyTransmittedBytes (item->GetSize ());
@@ -430,16 +416,17 @@ NetDeviceQueue::PacketDiscarded (Ptr<Queue<Item> > queue,
                                  Ptr<NetDeviceQueueInterface> ndqi,
                                  uint8_t txq, Ptr<const Item> item)
 {
-  NDQI_LOG (LOG_LOGIC, "NetDeviceQueue:PacketDiscarded(" << queue << ", " << ndqi
-            << ", " << txq << ", " << item << ")");
+  static LogComponent & g_log = GetLogComponent ("NetDeviceQueueInterface");
+
+  NS_LOG_FUNCTION (queue << ndqi << txq << item);
 
   // This method is called when a packet is discarded before being enqueued in the
   // device queue, likely because the queue is full. This should not happen if the
   // device correctly stops the queue. Anyway, stop the tx queue, so that the upper
   // layers do not send packets until there is room in the queue again.
 
-  NDQI_LOG (LOG_ERROR, "BUG! No room in the device queue for the received packet! ("
-            << queue->GetNPackets () << " packets and " << queue->GetNBytes () << " bytes inside)");
+  NS_LOG_ERROR ("BUG! No room in the device queue for the received packet! ("
+                << queue->GetNPackets () << " packets and " << queue->GetNBytes () << " bytes inside)");
 
   ndqi->GetTxQueue (txq)->Stop ();
 }

@@ -409,7 +409,14 @@ private:
 
 };  // class LogComponent
 
-  
+/**
+ * Get the LogComponent registered with the given name.
+ *
+ * \param [in] name The name of the LogComponent.
+ * \return a reference to the requested LogComponent
+ */
+LogComponent & GetLogComponent (const std::string name);
+
 /**
  * Insert `, ` when streaming function arguments.
  */
