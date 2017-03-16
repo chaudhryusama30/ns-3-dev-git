@@ -199,7 +199,7 @@ void LogComponentDisableAll (enum LogLevel level);
  * \param [in] name The log component name.
  */
 #define NS_LOG_COMPONENT_DEFINE(name)                           \
-  static ns3::LogComponent g_log = ns3::LogComponent (name, __FILE__)
+  static ns3::LogComponentRegistration g_log = ns3::LogComponentRegistration (name, __FILE__)
 
 /**
  * Define a logging component with a mask.
@@ -210,7 +210,11 @@ void LogComponentDisableAll (enum LogLevel level);
  * \param [in] mask The default mask.
  */
 #define NS_LOG_COMPONENT_DEFINE_MASK(name, mask)                \
-  static ns3::LogComponent g_log = ns3::LogComponent (name, __FILE__, mask)
+  static ns3::LogComponentRegistration g_log = ns3::LogComponentRegistration (name, __FILE__, mask)
+
+#define NS_LOG_COMPONENT_USE(type,name)           \
+  template <typename Item>                        \
+  const LogComponentRegistration type<Item>::g_log = LogComponentRegistration (name, std::string())
 
 /**
  * Use \ref NS_LOG to output a message of level LOG_ERROR.
@@ -359,6 +363,11 @@ public:
    */
   std::string File (void) const;
   /**
+   * Set the compilation unit defining this LogComponent.
+   * \param [in] name The file name.
+   */
+  void SetFile (std::string name);
+  /**
    * Get the string label for the given LogLevel.
    *
    * \param [in] level The LogLevel to get the label for.
@@ -410,14 +419,6 @@ private:
 };  // class LogComponent
 
 /**
- * Get the LogComponent registered with the given name.
- *
- * \param [in] name The name of the LogComponent.
- * \return a reference to the requested LogComponent
- */
-LogComponent & GetLogComponent (const std::string name);
-
-/**
  * Insert `, ` when streaming function arguments.
  */
 class ParameterLogger
@@ -443,6 +444,42 @@ public:
   ParameterLogger& operator<< (T param);
 
 };
+
+/**
+ * This class is used to create and register log components.
+ */
+class LogComponentRegistration
+{
+public:
+  /**
+   * Constructor.
+   *
+   * \param [in] name If not empty, provides the user-visible name for this component.
+   * \param [in] file The source code file which defined this LogComponent.
+   * \param [in] mask LogLevels blocked for this LogComponent.  Blocking
+   *                  a log level helps prevent recursion by logging in
+   *                  functions which help implement the logging facility.
+   */
+  LogComponentRegistration (const std::string & name,
+                            const std::string & file,
+                            const enum LogLevel mask = LOG_NONE);
+
+  /**
+   * Destructor
+   */
+  virtual ~LogComponentRegistration ();
+
+  /**
+   * Get the log component
+   *
+   * \return The log component
+   */
+  LogComponent* GetLogComponent (void) const;
+
+private:
+  LogComponent* m_log;     //!< The log component
+};
+
 
 template<typename T>
 ParameterLogger&

@@ -37,7 +37,7 @@
  * Logging implementation macro; should not be called directly.
  */
 #define NS_LOG_APPEND_TIME_PREFIX                               \
-  if (g_log.IsEnabled (ns3::LOG_PREFIX_TIME))                   \
+  if (g_log.GetLogComponent ()->IsEnabled (ns3::LOG_PREFIX_TIME))                   \
     {                                                           \
       ns3::LogTimePrinter printer = ns3::LogGetTimePrinter ();  \
       if (printer != 0)                                         \
@@ -54,7 +54,7 @@
  * Logging implementation macro; should not be called directly.
  */
 #define NS_LOG_APPEND_NODE_PREFIX                               \
-  if (g_log.IsEnabled (ns3::LOG_PREFIX_NODE))                   \
+  if (g_log.GetLogComponent ()->IsEnabled (ns3::LOG_PREFIX_NODE))                   \
     {                                                           \
       ns3::LogNodePrinter printer = ns3::LogGetNodePrinter ();  \
       if (printer != 0)                                         \
@@ -71,9 +71,9 @@
  * Logging implementation macro; should not be called directly.
  */
 #define NS_LOG_APPEND_FUNC_PREFIX                               \
-  if (g_log.IsEnabled (ns3::LOG_PREFIX_FUNC))                   \
+  if (g_log.GetLogComponent ()->IsEnabled (ns3::LOG_PREFIX_FUNC))                   \
     {                                                           \
-      std::clog << g_log.Name () << ":" <<                      \
+      std::clog << g_log.GetLogComponent ()->Name () << ":" <<                      \
       __FUNCTION__ << "(): ";                                   \
     }                                                           \
 
@@ -84,9 +84,9 @@
  * Logging implementation macro; should not be called directly.
  */
 #define NS_LOG_APPEND_LEVEL_PREFIX(level)                       \
-  if (g_log.IsEnabled (ns3::LOG_PREFIX_LEVEL))                  \
+  if (g_log.GetLogComponent ()->IsEnabled (ns3::LOG_PREFIX_LEVEL))                  \
     {                                                           \
-      std::clog << "[" << g_log.GetLevelLabel (level) << "] ";  \
+      std::clog << "[" << g_log.GetLogComponent ()->GetLevelLabel (level) << "] ";  \
     }                                                           \
 
 
@@ -153,7 +153,7 @@
   NS_LOG_CONDITION                                              \
   do                                                            \
     {                                                           \
-      if (g_log.IsEnabled (level))                              \
+      if (g_log.GetLogComponent ()->IsEnabled (level))                              \
         {                                                       \
           NS_LOG_APPEND_TIME_PREFIX;                            \
           NS_LOG_APPEND_NODE_PREFIX;                            \
@@ -177,12 +177,12 @@
   NS_LOG_CONDITION                                              \
   do                                                            \
     {                                                           \
-      if (g_log.IsEnabled (ns3::LOG_FUNCTION))                  \
+      if (g_log.GetLogComponent ()->IsEnabled (ns3::LOG_FUNCTION))                  \
         {                                                       \
           NS_LOG_APPEND_TIME_PREFIX;                            \
           NS_LOG_APPEND_NODE_PREFIX;                            \
           NS_LOG_APPEND_CONTEXT;                                \
-          std::clog << g_log.Name () << ":"                     \
+          std::clog << g_log.GetLogComponent ()->Name () << ":"                     \
                     << __FUNCTION__ << "()" << std::endl;       \
         }                                                       \
     }                                                           \
@@ -214,12 +214,12 @@
   NS_LOG_CONDITION                                              \
   do                                                            \
     {                                                           \
-      if (g_log.IsEnabled (ns3::LOG_FUNCTION))                  \
+      if (g_log.GetLogComponent ()->IsEnabled (ns3::LOG_FUNCTION))                  \
         {                                                       \
           NS_LOG_APPEND_TIME_PREFIX;                            \
           NS_LOG_APPEND_NODE_PREFIX;                            \
           NS_LOG_APPEND_CONTEXT;                                \
-          std::clog << g_log.Name () << ":"                     \
+          std::clog << g_log.GetLogComponent ()->Name () << ":"                     \
                     << __FUNCTION__ << "(";                     \
           ns3::ParameterLogger (std::clog) << parameters;       \
           std::clog << ")" << std::endl;                        \

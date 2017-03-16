@@ -25,6 +25,10 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("Queue");
+NS_LOG_COMPONENT_USE (Queue,"Queue");
+
+// template <typename Item>
+// const LogComponentRegistration Queue<Item>::g_log = LogComponentRegistration ("Queue", std:string());
 
 NS_OBJECT_ENSURE_REGISTERED (QueueBase);
 NS_OBJECT_TEMPLATE_CLASS_DEFINE (Queue,Packet);

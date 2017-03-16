@@ -31,6 +31,9 @@
 
 namespace ns3 {
 
+NS_LOG_COMPONENT_USE (Queue,"Queue");
+NS_LOG_COMPONENT_USE (DropTailQueue,"DropTailQueue");
+
 NS_OBJECT_TEMPLATE_CLASS_DEFINE (Queue,QueueDiscItem);
 NS_OBJECT_TEMPLATE_CLASS_DEFINE (DropTailQueue,QueueDiscItem);
 

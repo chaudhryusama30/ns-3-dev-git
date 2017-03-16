@@ -31,6 +31,10 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("WifiMacQueue");
+NS_LOG_COMPONENT_USE (Queue,"Queue");
+
+template <>
+const LogComponentRegistration WifiMacQueue::g_log = LogComponentRegistration ("WifiMacQueue", std::string());
 
 WifiMacQueueItem::WifiMacQueueItem (Ptr<const Packet> p, const WifiMacHeader & header)
   : m_packet (p),
@@ -111,7 +115,7 @@ WifiMacQueue::GetTypeId (void)
 
 template<>
 WifiMacQueue::WifiQueue ()
-  : g_log (GetLogComponent ("WifiMacQueue"))
+//   : g_log (GetLogComponent ("WifiMacQueue"))
 {
 }
 

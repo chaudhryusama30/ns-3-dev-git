@@ -59,7 +59,7 @@ private:
   using Queue<Item>::DoRemove;
   using Queue<Item>::DoPeek;
 
-  LogComponent & g_log;     //!< redefinition of the log component
+  static const LogComponentRegistration g_log;     //!< redefinition of the log component
 };
 
 
@@ -81,8 +81,8 @@ DropTailQueue<Item>::GetTypeId (void)
 
 template <typename Item>
 DropTailQueue<Item>::DropTailQueue () :
-  Queue<Item> (),
-  g_log (GetLogComponent ("DropTailQueue"))
+  Queue<Item> ()
+//   g_log (GetLogComponent ("DropTailQueue"))
 {
   NS_LOG_FUNCTION (this);
 }

@@ -406,7 +406,7 @@ protected:
 
 private:
   std::list<Ptr<Item> > m_packets;          //!< the items in the queue
-  LogComponent & g_log;                     //!< the log component
+  static const LogComponentRegistration g_log;                     //!< the log component
 
   /// Traced callback: fired when a packet is enqueued
   TracedCallback<Ptr<const Item> > m_traceEnqueue;
@@ -454,7 +454,7 @@ Queue<Item>::GetTypeId (void)
 
 template <typename Item>
 Queue<Item>::Queue ()
-  : g_log (GetLogComponent ("Queue"))
+//   : g_log (GetLogComponent ("Queue"))
 {
 }
 

@@ -131,23 +131,6 @@ LogComponent::LogComponent (const std::string & name,
   components->insert (std::make_pair (name, this));
 }
 
-LogComponent &
-GetLogComponent (const std::string name)
-{
-  LogComponent::ComponentList *components = LogComponent::GetComponentList ();
-  LogComponent* ret;
-
-  try
-    {
-      ret = components->at (name);
-    }
-  catch (std::out_of_range&)
-    {
-      NS_FATAL_ERROR ("Log component \"" << name << "\" does not exist.");
-    }
-  return *ret;
-}
-
 void
 LogComponent::EnvVarCheck (void)
 {
@@ -327,6 +310,12 @@ std::string
 LogComponent::File (void) const
 {
   return m_file;
+}
+
+void
+LogComponent::SetFile (std::string name)
+{
+  m_file = name;
 }
 
 /* static */
@@ -678,6 +667,40 @@ ParameterLogger::operator<< <const char *>(const char * param)
 {
   (*this) << std::string (param);
   return *this;
+}
+
+LogComponentRegistration::LogComponentRegistration (const std::string & name,
+                                                    const std::string & file,
+                                                    const enum LogLevel mask /* = 0 */)
+{
+  LogComponent::ComponentList *components = LogComponent::GetComponentList ();
+
+  try
+    {
+      m_log = components->at (name);
+      if (!file.empty ())
+        {
+          m_log->SetFile (file);
+        }
+    }
+  catch (std::out_of_range&)
+    {
+      m_log = new LogComponent (name, file, mask);
+    }
+}
+
+LogComponentRegistration::~LogComponentRegistration ()
+{
+  if (m_log)
+    {
+      delete m_log;
+    }
+}
+
+LogComponent*
+LogComponentRegistration::GetLogComponent () const
+{
+  return m_log;
 }
 
 } // namespace ns3

@@ -308,7 +308,7 @@ private:
   Time m_maxDelay;                          //!< Time to live for packets in the queue
   DropPolicy m_dropPolicy;                  //!< Drop behavior of queue
 
-  LogComponent & g_log;                     //!< redefinition of the log component
+  static const LogComponentRegistration g_log;                     //!< redefinition of the log component
 };
 
 /// Declare WifiMacQueue as a specialization of template class WifiQueue

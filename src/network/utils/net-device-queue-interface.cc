@@ -28,6 +28,8 @@ namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("NetDeviceQueueInterface");
 
+const LogComponentRegistration NetDeviceQueue::g_log = LogComponentRegistration ("NetDeviceQueueInterface", std::string());
+
 NetDeviceQueue::NetDeviceQueue ()
   : m_stoppedByDevice (false),
     m_stoppedByQueueLimits (false)

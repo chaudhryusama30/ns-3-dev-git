@@ -196,6 +196,7 @@ private:
   bool m_stoppedByQueueLimits;    //!< True if the queue has been stopped by a queue limits object
   Ptr<QueueLimits> m_queueLimits; //!< Queue limits object
   WakeCallback m_wakeCallback;    //!< Wake callback
+  static const LogComponentRegistration g_log;                     //!< the log component
 };
 
 
@@ -359,8 +360,6 @@ NetDeviceQueue::PacketEnqueued (Ptr<Queue<Item> > queue,
                                 Ptr<NetDeviceQueueInterface> ndqi,
                                 uint8_t txq, Ptr<const Item> item)
 {
-  static LogComponent & g_log = GetLogComponent ("NetDeviceQueueInterface");
-
   NS_LOG_FUNCTION (queue << ndqi << txq << item);
 
   // Inform BQL
@@ -388,8 +387,6 @@ NetDeviceQueue::PacketDequeued (Ptr<Queue<Item> > queue,
                                 Ptr<NetDeviceQueueInterface> ndqi,
                                 uint8_t txq, Ptr<const Item> item)
 {
-  static LogComponent & g_log = GetLogComponent ("NetDeviceQueueInterface");
-
   NS_LOG_FUNCTION (queue << ndqi << txq << item);
 
   // Inform BQL
@@ -416,8 +413,6 @@ NetDeviceQueue::PacketDiscarded (Ptr<Queue<Item> > queue,
                                  Ptr<NetDeviceQueueInterface> ndqi,
                                  uint8_t txq, Ptr<const Item> item)
 {
-  static LogComponent & g_log = GetLogComponent ("NetDeviceQueueInterface");
-
   NS_LOG_FUNCTION (queue << ndqi << txq << item);
 
   // This method is called when a packet is discarded before being enqueued in the

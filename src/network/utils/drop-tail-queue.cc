@@ -21,6 +21,7 @@
 namespace ns3 {
 
 NS_LOG_COMPONENT_DEFINE ("DropTailQueue");
+NS_LOG_COMPONENT_USE (DropTailQueue,"DropTailQueue");
 
 NS_OBJECT_TEMPLATE_CLASS_DEFINE (DropTailQueue,Packet);
 
